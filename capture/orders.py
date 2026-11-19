@@ -51,6 +51,9 @@ class ReadOrders:
         if self._pending is not None:
             raise ReadOrderError('terminal already has a pending read')
 
+    def has_pending(self) -> bool:
+        return self._pending is not None
+
     def get(self, order_id: str) -> ReadOrder:
         if not isinstance(order_id, str) or order_id not in self._orders:
             raise ReadOrderError(f'unknown read order {order_id!r}')

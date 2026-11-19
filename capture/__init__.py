@@ -1,1 +1,1 @@
-"""Manual read orders, device evidence, and receipt intake."""
+"""Manual and automatic read orders, device evidence, and receipt intake."""

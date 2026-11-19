@@ -3,8 +3,9 @@ from __future__ import annotations
 from archive.readback import read_receipt
 from archive.receipts import Receipt
 from archive.store import ArchiveStore
+from capture.auto import AutoReads
 from capture.intake import prepare_receipt
-from capture.orders import ReadOrder, ReadOrders, ReadStage, new_order_id
+from capture.orders import ReadOrder, ReadOrders, ReadOrderError, ReadStage, new_order_id
 from capture.replies import ReplyError, validate_reply
 from terminal.device import DeviceReply
 from terminal.selection import ManualTerminal
@@ -16,8 +17,11 @@ class Readout:
         self._terminal = terminal
         self._archive = archive
         self._orders = ReadOrders()
+        self._auto = AutoReads(terminal, archive)
 
     def begin_read(self) -> ReadOrder:
+        if self._auto.has_active():
+            raise ReadOrderError('terminal has an active auto job')
         self._orders.require_available()
         shift = self._terminal.shift_config()
         order_id = new_order_id()
@@ -49,3 +53,16 @@ class Readout:
 
     def cancel_read(self, order_id: str) -> ReadStage:
         return self._orders.cancel(order_id)
+
+    # -- auto collection -------------------------------------------------------
+
+    def start_auto(self, shift_id: str, profile: str, lane: object) -> str:
+        if self._orders.has_pending():
+            raise ReadOrderError('terminal already has a pending manual read')
+        return self._auto.start(shift_id, profile, lane)
+
+    def step_auto(self, job_id: str) -> ReadStage | Receipt:
+        return self._auto.step(job_id)
+
+    def cancel_auto(self, job_id: str) -> ReadStage:
+        return self._auto.cancel(job_id)
